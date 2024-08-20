@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Webcam Display</title>
+	<meta name="description" content="">
+	<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=">
+</head>
+
+<body>
+
+
+<div class="page-elements">
+
+    <hr>
+	<video autoplay="true" id="videoElement" hidden></video>
+	<hr>
+	<canvas id="videoCanvas"></canvas>
+    <hr>
+
+</div>
+
+<script>
+
+let videoElement = document.querySelector("#videoElement");
+let videoCanvas  = document.querySelector("#videoCanvas");
+let videoContext = videoCanvas.getContext("2d");
+let width  = videoCanvas.width;
+let height = videoCanvas.height;
+
+
+run();
+
+async function run()
+{
+	await initialize();
+	loop();
+}
+
+async function initialize()
+{
+	console.log("starting program...");
+
+	if (navigator.mediaDevices.getUserMedia)
+	{
+		  let settings = { video: true };
+
+		  async function hasStream(stream) // async function
+		  {
+			  videoElement.srcObject = stream;
+
+			  // determine webcam resolution
+			  let features = { "video": {} };
+			  let media = await navigator.mediaDevices.getUserMedia(features); // await navigator
+			  let settings = media.getVideoTracks()[0].getSettings();
+			  
+			  width  = settings.width;
+              height = settings.height;
+
+				// need to reset context after determining size
+                videoCanvas.width  = width;
+                videoCanvas.height = height;
+                videoContext = videoCanvas.getContext("2d");
+                // use code below to flip horizontally
+				// videoContext.translate(width, 0); 
+				// videoContext.scale(-1, 1); 
+			}
+
+			function onError(error)
+			{
+				console.log("An error occured.");
+				console.log(error);
+			}
+
+	  	navigator.mediaDevices.getUserMedia(settings).then(hasStream).catch(onError);
+	}
+}
+
+function loop()
+{
+    requestAnimationFrame(loop);
+	update();
+	render();
+	// lower the frame rate
+	// setTimeout(loop, 100);
+}
+
+function update()
+{
+	console.log("running...");
+}
+
+function render()
+{
+	if ( videoElement.readyState === videoElement.HAVE_ENOUGH_DATA ) 
+	{
+		  videoContext.drawImage( videoElement, 0, 0, videoCanvas.width, videoCanvas.height );
+	}
+	else
+	{
+
+	}	
+}
+
+
+</script>
+
+</body>
+</html>
