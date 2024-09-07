@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>AR demo</title>
+    
+    <!-- from https://aframe.io/releases/1.3.0/aframe.min.js -->
+    <script src="js/aframe.min.js"></script>
+    <!-- from https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js -->
+    <script src="js/aframe-ar.js"></script>
+    <script src="js/perlin-shader-code.js"></script>
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+    </style>
+
+</head>
+<body>
+
+<!-- custom shader code must appear before a-scene tag -->
+<script>
+    AFRAME.registerShader('my-custom', {
+
+    // declare shader parameters
+    schema: 
+    {
+        color: {type:'color', is:'uniform', default:'red'},
+        opacity: {type:'number', is:'uniform', default:1.0},
+        time: {type: 'time', is: 'uniform'}
+    },
+      
+    vertexShader:
+    `
+    precision mediump float;
+    uniform float time;
+    varying vec3 vPos;
+    varying vec2 vUV;
+
+    ${perlinShaderCode}
+
+    void main() 
+    {
+        vUV = uv;
+        vPos = position;
+
+        float t = time / 1000.0;  
+        float speed = 1.0;
+        float size = 0.5;
+        float M = 0.1;
+        float B = 0.0;
+        float displacement = M * cnoise( vPos.zyx/size + t*speed ) + B;
+    
+        vec3 newPosition = position + normal * displacement;
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+    }
+    `,
+
+    fragmentShader: 
+    `
+    precision mediump float;
+    varying vec3 vPos;
+    varying vec2 vUV;
+
+    // receive values from schema
+    uniform vec3 color;
+    uniform float opacity;
+    uniform float time;
+
+    ${perlinShaderCode}
+
+    void main () 
+    {
+        float t = time / 1000.0;  
+        float speed = 0.5;
+        float size = 0.5;
+        float M = 1.0;
+        float B = 0.5;
+        float r = M * fnoise( vPos.xyz/size + t*speed ) + B;
+        float g = M * fnoise( vPos.yzx/size + t*speed ) + B;
+        float b = M * fnoise( vPos.zxy/size + t*speed ) + B;
+        gl_FragColor = vec4( r, g, b, opacity );
+    }
+    `
+    
+    });
+    </script>
+
+<!-- log depth reduces z-fighting when marker is at greater distance from camera-->
+<a-scene embedded 
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: true;">
+
+    <a-marker type="barcode" value="0" smooth="true">
+        <a-sphere radius="1.2" segments-width="72" segments-height="36"
+            material="shader:my-custom; opacity:0.99; transparent:true"></a-sphere>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+
+</a-scene>
+
+</body>
+</html>
+
+
+
