@@ -33,11 +33,6 @@
             font-weight: bold;
             font-family: Verdana, Tahoma, sans-serif;
         }
-
-        video
-        {
-            xtransform: scale(-1, 1);
-        }
     </style>
 
 </head>
@@ -48,7 +43,9 @@
 </div>
 
 <!-- log depth reduces z-fighting when marker is at greater distance from camera-->
-<a-scene embedded arjs renderer="logarithmicDepthBuffer: true;">
+<a-scene embedded 
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: true;">
 
     <a-assets>
         <img id="background" src="images/galaxy.jpg">
@@ -59,7 +56,7 @@
         <img id="earth-clouds" src="images/earth-clouds.png" />
     </a-assets>
 
-    <a-marker preset="hiro" smooth="true">
+    <a-marker type="barcode" value="0" smooth="true">
         <a-entity rotation="-90 0 0">
             <!-- galaxy -->
             <a-sphere radius="20" material="src:#background; side:back; transparent:true; opacity:0.50;"></a-sphere>
