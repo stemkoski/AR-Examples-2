@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>AR demo</title>
+    
+    <!-- from https://aframe.io/releases/1.3.0/aframe.min.js -->
+    <script src="js/aframe.min.js"></script>
+    <!-- from https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js -->
+    <script src="js/aframe-ar.js"></script>
+    
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+    </style>
+
+</head>
+<body>
+
+<!-- custom shader code must appear before a-scene tag -->
+<script>
+    AFRAME.registerShader('my-custom', {
+
+    // declare shader parameters
+    schema: 
+    {
+        color: {type:'color', is:'uniform', default:'red'},
+        opacity: {type:'number', is:'uniform', default:1.0},
+        time: {type: 'time', is: 'uniform'}
+    },
+      
+    vertexShader:
+    `
+    varying vec2 vUV;
+
+    void main() 
+    {
+        vUV = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }
+    `,
+
+    fragmentShader: 
+    `
+    precision mediump float;
+    varying vec2 vUV;
+
+    // receive values from schema
+    uniform vec3 color;
+    uniform float opacity;
+    uniform float time;
+    void main () 
+    {
+        float t = abs(sin(time / 1000.0));
+        float r = mod(8.0 * vUV.x, 1.0);
+        float g = mod(8.0 * vUV.y, 1.0);
+        gl_FragColor = vec4(r, g, 0.0, opacity * t);
+    }
+    `
+    
+    });
+    </script>
+
+<!-- log depth reduces z-fighting when marker is at greater distance from camera-->
+<a-scene embedded 
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: true;">
+
+    <a-marker type="barcode" value="0" smooth="true">
+        <a-sphere radius="1" material="shader:my-custom; color:blue; opacity:0.7; transparent:true"></a-sphere>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+
+</a-scene>
+
+</body>
+</html>
+
+
+
