@@ -12,27 +12,83 @@
     <script src="js/aframe-ar.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; }
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+
+        .buttonDiv
+        {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 2em;
+            display: flex;
+            z-index: 10;            
+        }
+
+        button
+        {
+            font-weight: bold;
+            font-family: Verdana, Tahoma, sans-serif;
+        }
+
+        video
+        {
+            xtransform: scale(-1, 1);
+        }
     </style>
+
 </head>
 <body>
+    
+<div class="buttonDiv">
+    <button id="sayHelloButton">HELLO</button>
+</div>
 
-    <a-scene embedded arjs>
+<!-- log depth reduces z-fighting when marker is at greater distance from camera-->
+<a-scene embedded arjs renderer="logarithmicDepthBuffer: true;">
 
-        <a-assets>
-            <img id="earth" src="images/earth-sphere.jpg" />
-        </a-assets>
+    <a-assets>
+        <img id="background" src="images/galaxy.jpg">
+        <img id="earth-none" src="images/blue.jpg" />
+        <img id="earth-day" src="images/earth-diffuse.jpg" />
+        <img id="earth-night" src="images/earth-night.jpg" />
+        <img id="earth-normal" src="images/earth-normal.jpg" />
+        <img id="earth-clouds" src="images/earth-clouds.png" />
+    </a-assets>
 
-        <a-marker preset="hiro">
-            <a-entity rotation="-90 0 0">
-                <a-sphere radius="1" material="src:#earth; repeat:1 1; transparent:true; opacity:0.75" 
-                animation__rotate = "property:rotation; dur:8000; from:0 0 0; to:0 -360 0; easing:linear; loop:true">
-                </a-sphere>
-            </a-entity>
-        </a-marker>
+    <a-marker preset="hiro" smooth="true">
+        <a-entity rotation="-90 0 0">
+            <!-- galaxy -->
+            <a-sphere radius="20" material="src:#background; side:back; transparent:true; opacity:0.50;"></a-sphere>
+            <!-- planet -->
+            <a-sphere radius="1" 
+            material="src:#earth-day; normal-map:#earth-normal; repeat:1 1; transparent:true; opacity:0.99" 
+            animation__rotate = "property:rotation; dur:60000; from:0 0 0; to:0 -360 0; easing:linear; loop:true">
+            </a-sphere>
+            <!-- clouds -->
+            <a-sphere radius="1.04" 
+            material="src:#earth-clouds; transparent:true; opacity:0.50" 
+            animation__rotate2 = "property:rotation; dur:55000; from:0 0 0; to:0 -360 0; easing:linear; loop:true">
+            </a-sphere>            
+        </a-entity>
+    </a-marker>
 
-        <a-entity camera></a-entity>
-    </a-scene>
+    <a-entity camera></a-entity>
+
+</a-scene>
+
+<script>
+    document.getElementById("sayHelloButton").addEventListener("click", 
+        function () 
+        {
+                alert("Hello!");
+        }
+    );
+</script>
+
 </body>
 </html>
 
