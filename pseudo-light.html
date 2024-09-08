@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>AR demo</title>
+    
+    <!-- from https://aframe.io/releases/1.3.0/aframe.min.js -->
+    <script src="js/aframe.min.js"></script>
+    <!-- from https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js -->
+    <script src="js/aframe-ar.js"></script>
+    
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+    </style>
+
+</head>
+<body>
+
+<script>
+
+AFRAME.registerShader('bright-moon', {
+
+// declare shader parameters
+schema: 
+{
+    color: {type:'color', is:'uniform', default:'white'},
+    opacity: {type:'number', is:'uniform', default:1.0},
+    time: {type: 'time', is: 'uniform'},
+    image: {type:'map', is:'uniform'},
+    sunVisible: {type:'number', is:'uniform', default:0.0},
+    moonToSun: {type: 'vec3', is:'uniform'}
+},
+  
+vertexShader:
+`
+precision mediump float;
+uniform float time;
+varying vec3 vPos;
+varying vec2 vUV;
+varying vec3 vNormal;
+
+void main() 
+{
+    vUV = uv;
+    vPos = position;
+    vNormal = normalize( normalMatrix * normal );
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+`,
+
+fragmentShader: 
+`
+precision mediump float;
+varying vec3 vPos;
+varying vec2 vUV;
+varying vec3 vNormal;
+
+// receive values from schema
+uniform vec3 color;
+uniform float opacity;
+uniform float time;
+uniform sampler2D image;
+uniform float sunVisible;
+uniform vec3 moonToSun;
+
+void main () 
+{
+    vec3 lightColor = vec3(1.0, 0.6, 0.0);
+    vec3 darkColor = vec3(0.2, 0.2, 0.5);
+    vec3 direction = normalize(moonToSun);
+
+    if (sunVisible < 0.5)
+    {
+        gl_FragColor = texture2D(image, vUV) * vec4(darkColor, opacity);
+    }
+    else
+    {
+        float d = dot(vNormal, direction);
+        
+        /*
+        // sharpest boundary
+        if (d >= 0.0)
+            gl_FragColor = texture2D(image, vUV) * vec4(lightColor, opacity);
+        else
+            gl_FragColor = texture2D(image, vUV) * vec4(darkColor, opacity);
+        */
+
+        // sharper boundary
+        if (d >= 0.0)
+            d = sqrt(d);
+        
+        // blended boundaries
+        if (d >= 0.0)
+            gl_FragColor = texture2D(image, vUV) * vec4( mix(darkColor, lightColor, d), opacity);
+        else
+            gl_FragColor = texture2D(image, vUV) * vec4(darkColor, opacity);
+    }
+}
+`
+
+});
+
+AFRAME.registerComponent('updater', {
+
+    init: function () 
+    {
+        this.moonMarker = document.querySelector("#moonMarker");
+        this.moonSphere = document.querySelector("#moonSphere");
+        this.sunMarker  = document.querySelector("#sunMarker");
+        this.sunSphere  = document.querySelector("#sunSphere");
+    },
+
+    tick: function () 
+    {
+        if (this.sunMarker.object3D.visible) // MARKER DETECTED
+        {
+            // if it was standard material, change color as follows:
+            // this.moonSphere.object3D.el.components.material.material.color.setHex(0xFFCC00);
+
+            this.moonSphere.object3D.el.components.material.material.uniforms.sunVisible.value = 1.0;
+
+            let sunPos = this.sunSphere.object3D.getWorldPosition( new THREE.Vector3() );
+
+            if (this.moonMarker.object3D.visible)
+            {
+                let moonPos = this.moonSphere.object3D.getWorldPosition( new THREE.Vector3() );
+                let moonToSun = new THREE.Vector3().subVectors( sunPos, moonPos );
+                this.moonSphere.object3D.el.components.material.material.uniforms.moonToSun.value.set(
+                    moonToSun.x, moonToSun.y, moonToSun.z );
+            }
+
+        } 
+        else 
+        {
+            this.moonSphere.object3D.el.components.material.material.uniforms.sunVisible.value = 0.0;
+        }
+    }
+});
+</script>
+
+<!-- log depth reduces z-fighting when marker is at greater distance from camera-->
+<a-scene embedded 
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: true;">
+
+    <a-assets>
+        <img id="sun" src="images/sun.jpg">
+        <img id="moon" src="images/moon.jpg">
+    </a-assets>
+
+    <a-marker type="barcode" value="0" smooth="true" id="moonMarker">
+        <a-sphere id="moonSphere" radius="1" 
+        material="shader:bright-moon; image:#moon; color:#008888; transparent:true; opacity:0.90"></a-sphere>
+    </a-marker>
+
+    <a-marker type="barcode" value="1" smooth="true" id="sunMarker">
+        <a-sphere id="sunSphere" radius="1" material="src:#sun; transparent:true; opacity:0.90"></a-sphere>
+    </a-marker>
+
+    <a-entity camera updater></a-entity>
+
+</a-scene>
+
+
+</body>
+</html>
+
+
+
