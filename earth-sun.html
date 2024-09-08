@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>AR demo</title>
+    
+    <!-- from https://aframe.io/releases/1.3.0/aframe.min.js -->
+    <script src="js/aframe.min.js"></script>
+    <!-- from https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js -->
+    <script src="js/aframe-ar.js"></script>
+    <script src="js/perlin-shader-code.js"></script>
+    
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+    </style>
+
+</head>
+<body>
+
+<script>
+
+AFRAME.registerShader('day-night', {
+
+// declare shader parameters
+schema: 
+{
+    color: {type:'color', is:'uniform', default:'white'},
+    opacity: {type:'number', is:'uniform', default:1.0},
+    time: {type: 'time', is: 'uniform'},
+    dayImage: {type:'map', is:'uniform'},
+    nightImage: {type:'map', is:'uniform'},
+    cloudImage: {type:'map', is:'uniform'},
+    sunVisible: {type:'number', is:'uniform', default:0.0},
+    earthToSun: {type: 'vec3', is:'uniform'}
+},
+  
+vertexShader:
+`
+precision mediump float;
+uniform float time;
+varying vec3 vPos;
+varying vec2 vUV;
+varying vec3 vNormal;
+
+void main() 
+{
+    vUV = uv;
+    vPos = position;
+    vNormal = normalize( normalMatrix * normal );
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+`,
+
+fragmentShader: 
+`
+precision mediump float;
+varying vec3 vPos;
+varying vec2 vUV;
+varying vec3 vNormal;
+
+// receive values from schema
+uniform vec3 color;
+uniform float opacity;
+uniform float time;
+uniform sampler2D dayImage;
+uniform sampler2D nightImage;
+uniform sampler2D cloudImage;
+uniform float sunVisible;
+uniform vec3 earthToSun;
+
+${perlinShaderCode}
+
+void main () 
+{
+    float t = 0.01 * time / 1000.0;
+
+    vec4 dayColor = texture2D(dayImage, vUV);
+    vec4 nightColor = texture2D(nightImage, vUV);
+    
+    // clouds drift around earth
+    vec2 shiftUV = fract(vUV + vec2(t/2.0,0.0));
+
+    // also randomly distort
+    vec2 offset = 0.05 * vec2( fnoise(vPos.zyx/0.5 + t*0.1), fnoise(vPos.xzy/0.5 + t*0.1) );
+
+    vec4 cloudColor = texture2D(cloudImage, shiftUV + offset);
+    vec3 direction = normalize(earthToSun);
+
+    cloudColor.a /= 2.0;
+    
+    // add clouds
+    dayColor = dayColor * (1.0 - cloudColor.a) + vec4( cloudColor.rgb, 1.0 ) * cloudColor.a;
+
+    if (sunVisible < 0.5)
+    {
+        gl_FragColor = dayColor;
+    }
+    else
+    {
+        float d = dot(vNormal, direction);
+        
+        /*
+        // sharpest boundary
+        if (d >= 0.0)
+            gl_FragColor = dayColor;
+        else
+            gl_FragColor = nightColor;
+        */
+
+        /*
+        // sharper boundary
+        if (d >= 0.0)
+            d = sqrt(d);
+        */
+
+        // blended boundaries
+        if (d >= 0.0)
+            gl_FragColor = mix(nightColor, dayColor, d);
+        else
+            gl_FragColor = nightColor;
+    }
+
+    // gl_FragColor = gl_FragColor * vec4(1.0, 1.0, 1.0, opacity);
+}
+`
+
+});
+
+AFRAME.registerComponent('updater', {
+
+    init: function () 
+    {
+        this.earthMarker = document.querySelector("#earthMarker");
+        this.earthSphere = document.querySelector("#earthSphere");
+        this.sunMarker  = document.querySelector("#sunMarker");
+        this.sunSphere  = document.querySelector("#sunSphere");
+
+        // THREE.RepeatWrapping = 1000
+        // this.earthSphere.object3D.el.components.material.material.uniforms.cloudImage.value.wrapS = 1000;
+
+    },
+
+    tick: function () 
+    {
+        if (this.sunMarker.object3D.visible) // MARKER DETECTED
+        {
+            // if it was standard material, change color as follows:
+            // this.moonSphere.object3D.el.components.material.material.color.setHex(0xFFCC00);
+
+            this.earthSphere.object3D.el.components.material.material.uniforms.sunVisible.value = 1.0;
+
+            let sunPos = this.sunSphere.object3D.getWorldPosition( new THREE.Vector3() );
+
+            if (this.earthMarker.object3D.visible)
+            {
+                let earthPos = this.earthSphere.object3D.getWorldPosition( new THREE.Vector3() );
+                let earthToSun = new THREE.Vector3().subVectors( sunPos, earthPos );
+                this.earthSphere.object3D.el.components.material.material.uniforms.earthToSun.value.set(
+                    earthToSun.x, earthToSun.y, earthToSun.z );
+            }
+
+        } 
+        else 
+        {
+            this.earthSphere.object3D.el.components.material.material.uniforms.sunVisible.value = 0.0;
+        }
+    }
+});
+
+AFRAME.registerShader('distortion', {
+
+// declare shader parameters
+schema: 
+{
+    color: {type:'color', is:'uniform', default:'red'},
+    opacity: {type:'number', is:'uniform', default:1.0},
+    time: {type: 'time', is: 'uniform'},
+    image: {type:'map', is:'uniform'},
+},
+  
+vertexShader:
+`
+precision mediump float;
+uniform float time;
+varying vec3 vPos;
+varying vec2 vUV;
+
+${perlinShaderCode}
+
+void main() 
+{
+    vUV = uv;
+    vPos = position;
+
+    float t = time / 1000.0;  
+    float speed = 0.5;
+    float size = 0.5;
+    float M = 0.03;
+    float B = 0.0;
+    float displacement = M * cnoise( vPos.zyx/size + t*speed ) + B;
+
+    vec3 newPosition = position + normal * displacement;
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+}
+`,
+
+fragmentShader: 
+`
+precision mediump float;
+varying vec3 vPos;
+varying vec2 vUV;
+
+// receive values from schema
+uniform vec3 color;
+uniform float opacity;
+uniform float time;
+uniform sampler2D image;
+
+${perlinShaderCode}
+
+void main () 
+{
+    float t = time / 1000.0;  
+    float speed = 0.2;
+    float size = 0.5;
+    float M = 1.0;
+    float B = 0.5;
+    float r = M * fnoise( vPos.xyz/size + t*speed ) + B;
+    float g = M * fnoise( vPos.yzx/size + t*speed ) + B;
+    float b = M * fnoise( vPos.zxy/size + t*speed ) + B;
+
+    vec2 offset = 0.06 * vec2( fnoise(vPos.zyx/size + t*speed), fnoise(vPos.xzy/size + t*speed) );
+    gl_FragColor = vec4( r, g, b, opacity );
+    gl_FragColor = texture2D( image, vUV + offset );
+}
+`
+
+});
+
+AFRAME.registerComponent('look-at', {
+
+    schema: { type: 'selector' },
+
+    init: function () {},
+
+    tick: function () 
+    {
+        this.el.object3D.lookAt(this.data.object3D.position);
+    }
+});
+
+</script>
+
+<!-- log depth reduces z-fighting when marker is at greater distance from camera-->
+<a-scene embedded vr-mode-ui="enabled: false"
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: false;">
+
+    <a-assets>
+        <img id="galaxy" src="images/starfield.png">
+        <img id="earth-day" src="images/earth-diffuse.jpg" />
+        <img id="earth-night" src="images/earth-night.jpg" />
+        <img id="earth-clouds" src="images/earth-clouds.png" />
+        <img id="sun" src="images/sun.jpg">
+        <img id="glow" src="images/glow-large.png">
+    </a-assets>
+    
+    <a-marker type="barcode" value="0" smooth="true" id="earthMarker">
+        <a-entity rotation="0 0 0">
+            <!-- planet -->
+            <a-sphere id="earthSphere" radius="0.8" 
+            material="shader:day-night; dayImage:#earth-day; nightImage:#earth-night; cloudImage:#earth-clouds;" 
+            animation__rotate = "property:rotation; dur:60000; from:0 0 0; to:0 -360 0; easing:linear; loop:true">
+            </a-sphere>         
+        </a-entity>
+    </a-marker>
+            
+    <a-marker type="barcode" value="1" smooth="true" id="sunMarker">
+        <a-plane width="2" height="2" rotation="0 0 0" color="#FF8800" look-at="#camera"
+            material="src:#glow; transparent:true;"></a-plane>
+        <a-sphere id="sunSphere" radius="0.8" rotation="0 0 0" segments-width="72" segments-height="36"
+            material="shader:distortion; image:#sun;"></a-sphere>
+    </a-marker>
+
+    <a-entity camera updater id="camera"></a-entity>
+
+</a-scene>
+
+
+</body>
+</html>
+
+
+
