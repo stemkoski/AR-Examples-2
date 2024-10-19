@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>A-Frame - Models</title>
+	<script src="js/aframe.min.js"></script>
+</head>
+
+<body>
+<a-scene>
+	
+	<a-assets>
+		<a-asset-item id="lamp" src="models/lamp.glb"></a-asset-item>
+	</a-assets>
+	
+	<a-entity gltf-model="#lamp" 
+		position = "0 0 -4"
+		rotation="0 0 0"
+		scale="1 1 1" shadow = "cast: true; receive: true">
+	</a-entity>
+
+    <a-sky color = "#001337"></a-sky>
+
+    <a-plane
+        width="100" height="100"
+        position="0 0 0" 
+        rotation="-90 0 0" 
+        color="#666666"
+        shadow="cast: false; receive: true">
+    </a-plane>
+
+    <a-box
+        width = "3" height = "1" depth = "1"
+        position = "0 0.5 -5"
+        rotation = "0 0 0"  
+        color = "blue"
+        shadow = "cast: true; receive: true">
+    </a-box>
+	
+</a-scene>
+</body>
+</html>
