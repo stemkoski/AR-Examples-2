@@ -72,12 +72,10 @@ AFRAME.registerComponent('markerhandler',
         this.markerArray = document.querySelectorAll("a-marker");
         this.visibleMarkerIndex = -1;
         this.currentMarkerIndex = -1;
-        console.log("init")
    },
 
    tick: function() 
    {
-        // console.log("tick" + this.markerArray.length)
         this.visibleMarkerIndex = -1;
         for (let i = 0; i < this.markerArray.length; i++)
             if (this.markerArray[i].object3D.visible)
@@ -112,6 +110,30 @@ AFRAME.registerComponent('markerhandler',
    }
 });
 
+AFRAME.registerComponent("gltf-modify", {
+
+    init: function () 
+    {        
+        this.el.addEventListener("model-loaded", function(eventData) {
+            let model = eventData.detail.model;
+            model.traverse((obj) => {
+                if (obj.isMesh)
+                {
+                    // console.log("found mesh")
+                    obj.material.metalness = 0.0;
+                    obj.material.roughness = 1.0;
+                    obj.material.shininess = 0.0;
+                    obj.material.flatShading = true;
+                    
+                    console.log(obj.material)
+                    
+                    // obj.material.specular
+                }
+            });
+        });
+        // modification complete
+    }
+});
 </script>
 
 <!-- 
@@ -119,35 +141,72 @@ AFRAME.registerComponent('markerhandler',
     logarithmicDepthBuffer: reduces z-fighting when marker is at greater distance from camera
  -->
 <a-scene embedded
+    shadow="type: pcfsoft"
     vr-mode-ui="enabled: false"
     arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: data/camera_para.dat"
-    renderer="logarithmicDepthBuffer: true; shadowMap: enabled;"
+    renderer="logarithmicDepthBuffer: true;"
     markerhandler>
 
-    <!-- 
-        NOTE 0: for this image set to line up correctly, had to swap xpos/xneg, rotate ypos +90, yneg -90 
-    -->
     <a-assets>
+        
         <img id="xpos" src="images/greenland/xpos.png">
         <img id="xneg" src="images/greenland/xneg.png">
         <img id="ypos" src="images/greenland/ypos.png">
         <img id="yneg" src="images/greenland/yneg.png">
         <img id="zpos" src="images/greenland/zpos.png">
         <img id="zneg" src="images/greenland/zneg.png">
+
+        <!--
+        <img id="xpos" src="images/underwater/xpos.jpg">
+        <img id="xneg" src="images/underwater/xneg.jpg">
+        <img id="ypos" src="images/underwater/ypos.jpg">
+        <img id="yneg" src="images/underwater/yneg.jpg">
+        <img id="zpos" src="images/underwater/zpos.jpg">
+        <img id="zneg" src="images/underwater/zneg.jpg">
+        -->
+
+        <!-- not great
+        <img id="xpos" src="images/clouds/xneg.jpg">
+        <img id="xneg" src="images/clouds/xpos.jpg">
+        <img id="ypos" src="images/clouds/ypos.jpg">
+        <img id="yneg" src="images/clouds/yneg.jpg">
+        <img id="zpos" src="images/clouds/zneg.jpg">
+        <img id="zneg" src="images/clouds/zpos.jpg">
+        -->
+
+        <!--
+        <img id="xpos" src="images/oceansky/xneg.jpg">
+        <img id="xneg" src="images/oceansky/xpos.jpg">
+        <img id="ypos" src="images/oceansky/ypos.jpg">
+        <img id="yneg" src="images/oceansky/yneg.jpg">
+        <img id="zpos" src="images/oceansky/zneg.jpg">
+        <img id="zneg" src="images/oceansky/zpos.jpg">
+        -->
+
         <a-asset-item id="rubik" src="models/rubik.glb"></a-asset-item>
         <a-asset-item id="parrot" src="models/Parrot.glb"></a-asset-item>
         <a-asset-item id="flamingo" src="models/Flamingo.glb"></a-asset-item>
+        <a-asset-item id="horse" src="models/Horse.glb"></a-asset-item>
+        <a-asset-item id="husky" src="models/Husky.glb"></a-asset-item>
+        <a-asset-item id="shark" src="models/Shark.glb"></a-asset-item>
+        <a-asset-item id="alpaca" src="models/Alpaca.glb"></a-asset-item>
 
     </a-assets>
 
-    <!-- 
-    NOTE 1: to get this to work at all, had to hard code img ids in multisrc component
-    NOTE 2: to get shader:flat to work, had to change MeshStandardMaterial to MeshBasicMaterial in multisrc component 
-    -->
     <a-entity id="model" visible="false">
-        <!-- TODO: light relative to the box, not the viewer (default), cast shadows on box bottom -->
-        
-        <!-- a translucent box surrounding the cube -->
+        <!-- TODO: light relative to the box, not the viewer (default), cast shadows on box bottom  -->
+        <a-entity 
+            position="0 5 0"
+            light="type:point; intensity:0.1; castShadow:true; shadowCameraFar:10; shadowBias:-0.001; shadowMapHeight:2048; shadowMapWidth:2048;" >
+        </a-entity>
+   
+        <!-- 
+            TODO: is there another way to set this light up without a wall of text? e.g.
+            <a-light type="point" position="0 5 0" intensity="0.1" shadow="cast:true;" castShadow="true" 
+            shadowCameraFar="100" shadowBias="-0.001" shadowMapHeight="2048" shadowMapWidth="2048" ></a-light>
+        -->
+
+        <!-- a translucent frame surrounding the cube -->
         <a-sphere radius="0.05" position="+0.5 +0.5 +0.5" material="translucent:true; opacity:0.5; color:gray"></a-sphere>
         <a-sphere radius="0.05" position="+0.5 +0.5 -0.5" material="translucent:true; opacity:0.5; color:gray"></a-sphere>
         <a-sphere radius="0.05" position="+0.5 -0.5 +0.5" material="translucent:true; opacity:0.5; color:gray"></a-sphere>
@@ -172,16 +231,35 @@ AFRAME.registerComponent('markerhandler',
         <a-cylinder radius="0.02" position="+0.0 -0.5 +0.5" rotation="0 0 90" material="translucent:true; opacity:0.5; color:gray"></a-cylinder>
         <a-cylinder radius="0.02" position="+0.0 -0.5 -0.5" rotation="0 0 90" material="translucent:true; opacity:0.5; color:gray"></a-cylinder>
 
-        <a-box id="background" multisrc="srcs:#xpos,#xneg,#ypos,#yneg,#zpos,#zneg" material="side:back; shader:flat;" ></a-box>
-         <!--
+        <!-- an inside-out background cube -->
+        <a-plane position="0 0 -0.5" rotation="0 0 0"  material="src:#zneg; shader:flat;"></a-plane>
+        <a-plane position="0 0 +0.5" rotation="0 180 0" material="src:#zpos; shader:flat;"></a-plane>
+        
+        <a-plane position="-0.5 0 0" rotation="0 90 0" material="src:#xpos; shader:flat;"></a-plane>
+        <a-plane position="+0.5 0 0" rotation="0 270 0" material="src:#xneg; shader:flat;"></a-plane>
+
+        <a-plane position="0 +0.5 0" rotation="90 0 0" material="src:#ypos; shader:flat;"></a-plane>
+        <a-plane position="0 -0.5 0" rotation="270 0 0" material="src:#yneg; shader:flat;"></a-plane>
+        
+        <!-- shadow receive plane -->
+        <a-plane position="0 -0.49 0" rotation="270 0 0" shadow="receive:true;" material="shader:shadow; opacity:0.6;"></a-plane>
+
+        <!--
             Model-specific notes:
-            Parrot:   position="0  0   0" scale="1.5 1.5 1.5"
-            Flamingo: position="0 -0.2 0" scale="2.0 2.0 2.0"
+            gltf-model="#parrot" animation-mixer="loop: repeat" position="0  0   0" scale="1.5 1.5 1.5"
+            gltf-model="#flamingo" animation-mixer="loop: repeat" position="0 -0.2 0" scale="2.0 2.0 2.0"
+            gltf-model="#horse" animation-mixer="loop: repeat; timeScale: 2.0" position="0 -0.25 0" scale="2 2 2"
+            gltf-model="#trex"  animation-mixer="loop: pingpong" position="0 -0.25 0" scale="1 1 1"
+            gltf-model="#husky" animation-mixer="loop: repeat; clip: Idle;" position="0 -0.16 0" scale="0.8 0.8 0.8"
+            gltf-model="#alpaca" animation-mixer="loop: repeat; clip: Idle;" position="0 -0.05 0" scale="0.9 0.9 0.9"
          -->
-         <a-entity gltf-model="#flamingo" resizer animation-mixer="loop: repeat" position="0 -0.2 0" scale="2 2 2"></a-entity>
+         <a-entity id="creature" resizer shadow="cast:true;" gltf-modify
+         gltf-model="#husky" animation-mixer="loop: repeat; clip: Idle;" position="0 -0.16 0" scale="0.8 0.8 0.8" >
+        </a-entity>
+    
     </a-entity>
 
-    <a-marker id="marker-front" type="barcode" value="0" smooth="true">
+    <a-marker type="barcode" value="0" smooth="true">
         <a-entity id="cube-front" position="0 -0.75 0" rotation="0 0 0" scale="1.5 1.5 1.5">
             <!-- place shared model here -->
         </a-entity>
@@ -217,7 +295,11 @@ AFRAME.registerComponent('markerhandler',
         </a-entity>
     </a-marker>
 
-    <a-entity camera></a-entity> 
+    <a-entity camera>
+        <a-entity light="type: ambient; color: #888"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 1.8" position="-0.5 1 1"></a-entity>
+
+    </a-entity> 
 
 
 </a-scene>
