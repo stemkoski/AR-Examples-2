@@ -54,8 +54,8 @@ AFRAME.registerComponent('multisrc', {
 
         //add plain new material to array, give it a unique name
         // 337 note: can we set Basic/Standard in schema?
-        this.materials.push( new THREE.MeshBasicMaterial({ name: 'material-' + i + ''}) )
-        // this.materials.push( new THREE.MeshStandardMaterial({ name: 'material-' + i + ''}) )
+        //this.materials.push( new THREE.MeshBasicMaterial({ name: 'material-' + i + ''}) )
+        this.materials.push( new THREE.MeshStandardMaterial({ name: 'material-' + i + ''}) )
 
       }//end for images loop
   
