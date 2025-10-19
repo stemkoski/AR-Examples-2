@@ -54,7 +54,13 @@ function averageWithoutOutliers(vecs, epsilon)
 {
   const THREE = AFRAME?.THREE || window.THREE;
   if (!vecs || vecs.length === 0) throw new Error("No vectors");
-  if (vecs.length === 1) return vecs[0].clone();
+
+  console.log("calculating average of " + vecs.length)
+  if (vecs.length == 1) 
+  {
+      console.log("only one")
+      return vecs[0].clone();
+  }
 
   // Compute provisional mean
   const mean = new THREE.Vector3();
@@ -122,27 +128,13 @@ AFRAME.registerComponent('marker-handler',
 
         console.log("markers found " + this.visibleIdArray.length)
 
-        let helperPositionArray = []
-        for (let i = 0; i < this.helperArray.length; i++)
-        {
-            const helper = this.helperArray[i];
-            if (helper.object3D.visible)
-            {
-                const pos = new THREE.Vector3();
-                helper.object3D.getWorldPosition(pos);
-                helperPositionArray.push(pos)
-            }
-            
-        }
-
-        epsilon = 0.5
-        center = averageWithoutOutliers(helperPositionArray, epsilon)
-        console.log(center)
 
 
         const originSphere = document.querySelector("#origin")
+        center = calculatePosition(this.helperArray)
         originSphere.object3D.position.set( center.x, center.y, center.z )
 
+        /*
         positionArray = [];
         for (let i = 0; i < this.xMarkerArray.length; i++)
         {
@@ -155,12 +147,32 @@ AFRAME.registerComponent('marker-handler',
             }
         }
         position = averageWithoutOutliers(positionArray, epsilon)
+        */
         const xAxisSphere = document.querySelector("#xAxis")
+        position = calculatePosition(this.xMarkerArray)
         xAxisSphere.object3D.position.set( position.x, position.y, position.z )
 
    }
 });
 
+function calculatePosition(elementArray)
+{
+    let positionArray = [];
+    // get positions for all visible markers
+    for (let i = 0; i < elementArray.length; i++)
+    {
+        const element = elementArray[i];
+        if (element.object3D.visible)
+        {
+            console.log(element.object3D)
+            console.log("element " + i + " is visible")
+            const pos = new THREE.Vector3();
+            element.object3D.getWorldPosition(pos);
+            positionArray.push(pos)
+        }
+    }
+    return averageWithoutOutliers(positionArray, 0.5)
+}
 
 </script>
 
@@ -179,6 +191,8 @@ AFRAME.registerComponent('marker-handler',
     <a-entity marker-handler></a-entity>
     <a-sphere id="origin" radius="0.1" color="gray"></a-sphere>
     <a-sphere id="xAxis"  radius="0.1" color="red"></a-sphere>
+    <a-sphere id="yAxis"  radius="0.1" color="green"></a-sphere>
+    <a-sphere id="zAxis"  radius="0.1" color="blue"></a-sphere>
 
 </a-scene>
 
@@ -225,7 +239,8 @@ function createBarcodeMarker(data)
     scene.appendChild(sphere)
 
     // use to track center of associated cube volume
-    const axes = document.createElement('a-entity');
+    const axes = document.createElement('a-sphere');   // TODO: fix (claims elements are visible, but they are not)
+    axes.setAttribute("radius", "0.2")
     axes.setAttribute('axes-helper', '');
     axes.setAttribute('position', `${-data.pos.x} ${data.pos.z} ${data.pos.y}`);
     marker.appendChild(axes);
@@ -235,6 +250,16 @@ function createBarcodeMarker(data)
     xMarker.setAttribute('x-marker', '');
     xMarker.setAttribute('position', `${-data.pos.x + 1} ${data.pos.z} ${data.pos.y}`);
     marker.appendChild(xMarker)
+
+    const yMarker = document.createElement('a-entity');
+    yMarker.setAttribute('y-marker', '');
+    yMarker.setAttribute('position', `${-data.pos.x} ${data.pos.z} ${data.pos.y + 1}`);
+    marker.appendChild(yMarker)
+
+    const zMarker = document.createElement('a-entity');
+    zMarker.setAttribute('z-marker', '');
+    zMarker.setAttribute('position', `${-data.pos.x + 1} ${data.pos.z + 1} ${data.pos.y}`);
+    marker.appendChild(zMarker)
 
     
     return marker;
