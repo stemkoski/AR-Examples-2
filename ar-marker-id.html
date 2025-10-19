@@ -104,6 +104,7 @@ AFRAME.registerComponent('marker-handler',
     </a-entity> 
 </a-scene>
 
+
 <script>
 function createBarcodeMarker(id) 
 {
@@ -125,12 +126,6 @@ function createBarcodeMarker(id)
     label.setAttribute('position', '0 0 0.01');
     //label.setAttribute('material', 'side: double;');
     plane.appendChild(label);
-
-    /*
-    // (Optional) Listen to found/lost events if you need custom logic
-    // marker.addEventListener('markerFound', () => console.log('Found ID', id));
-    // marker.addEventListener('markerLost', () => console.log('Lost  ID', id));
-    */
 
     return marker;
 }
