@@ -55,10 +55,10 @@ function averageWithoutOutliers(vecs, epsilon)
   const THREE = AFRAME?.THREE || window.THREE;
   if (!vecs || vecs.length === 0) throw new Error("No vectors");
 
-  console.log("calculating average of " + vecs.length)
+  //console.log("calculating average of " + vecs.length)
   if (vecs.length == 1) 
   {
-      console.log("only one")
+      // console.log("only one")
       return vecs[0].clone();
   }
 
@@ -71,8 +71,8 @@ function averageWithoutOutliers(vecs, epsilon)
   const inliers = vecs.filter(v => v.distanceTo(mean) <= epsilon);
 
   // status report
-  if (vecs.length > inliers.length)
-    console.log("outliers rejected!")
+  // if (vecs.length > inliers.length)
+  //   console.log("outliers rejected! " + Math.random())
 
   // If all were rejected, just return the initial mean
   if (inliers.length === 0) return mean;
@@ -91,8 +91,10 @@ AFRAME.registerComponent('marker-handler',
    {
         this.markerArray = document.querySelectorAll("a-marker");
         this.sphereArray = document.querySelectorAll("a-sphere");
-        this.helperArray = document.querySelectorAll("[axes-helper]")
+        this.oMarkerArray = document.querySelectorAll("[o-marker]")
         this.xMarkerArray = document.querySelectorAll("[x-marker]")
+        this.yMarkerArray = document.querySelectorAll("[y-marker]")
+        this.zMarkerArray = document.querySelectorAll("[z-marker]")
         
         this.visibleIdArray = [];
    },
@@ -101,6 +103,11 @@ AFRAME.registerComponent('marker-handler',
    {
         this.visibleIdArray = [];
 
+        let oMarkerVisibleArray = [];
+        let xMarkerVisibleArray = [];
+        let yMarkerVisibleArray = [];
+        let zMarkerVisibleArray = [];
+        
         for (let i = 0; i < this.markerArray.length; i++)
         {
             const marker = this.markerArray[i];
@@ -110,14 +117,19 @@ AFRAME.registerComponent('marker-handler',
                 this.visibleIdArray.push(i);
                 plane.setAttribute('color', '#00ff00');
 
-                this.sphereArray[i].object3D.visible = true;
-                const pos = new THREE.Vector3();
-                marker.object3D.getWorldPosition(pos);
-                this.sphereArray[i].object3D.position.set(pos.x, pos.y, pos.z);
+                oMarkerVisibleArray.push( this.oMarkerArray[i] );
+                xMarkerVisibleArray.push( this.xMarkerArray[i] );
+                yMarkerVisibleArray.push( this.yMarkerArray[i] );
+                zMarkerVisibleArray.push( this.zMarkerArray[i] );
+
+                // const pos = new THREE.Vector3();
+                // marker.object3D.getWorldPosition(pos);
+                // console.log("marker " + i + " visible")
             }
             else
             {
                 plane.setAttribute('color', '#ff0000');
+                // console.log("marker " + i + " NOT visible")
             }
         }
         //console.log( this.markerArray.length )
@@ -126,35 +138,24 @@ AFRAME.registerComponent('marker-handler',
         if (this.visibleIdArray.length == 0)
             return;
 
-        console.log("markers found " + this.visibleIdArray.length)
+        //console.log("markers found " + this.visibleIdArray.length)
 
 
 
-        const originSphere = document.querySelector("#origin")
-        center = calculatePosition(this.helperArray)
-        originSphere.object3D.position.set( center.x, center.y, center.z )
+        //const originSphere = document.querySelector("#origin")
+        //position = calculatePosition(oMarkerVisibleArray)
+        document.querySelector("#origin").object3D.position.copy( calculatePosition(oMarkerVisibleArray) );
 
-        /*
-        positionArray = [];
-        for (let i = 0; i < this.xMarkerArray.length; i++)
-        {
-            const xMarker = this.xMarkerArray[i];
-            if (xMarker.object3D.visible)
-            {
-                const pos = new THREE.Vector3();
-                xMarker.object3D.getWorldPosition(pos);
-                positionArray.push(pos)
-            }
-        }
-        position = averageWithoutOutliers(positionArray, epsilon)
-        */
-        const xAxisSphere = document.querySelector("#xAxis")
-        position = calculatePosition(this.xMarkerArray)
-        xAxisSphere.object3D.position.set( position.x, position.y, position.z )
+        //const xAxisSphere = document.querySelector("#xAxis")
+        //position = calculatePosition(xMarkerVisibleArray)
+        document.querySelector("#xAxis").object3D.position.copy( calculatePosition(xMarkerVisibleArray) )
+        document.querySelector("#yAxis").object3D.position.copy( calculatePosition(yMarkerVisibleArray) )
+        document.querySelector("#zAxis").object3D.position.copy( calculatePosition(zMarkerVisibleArray) )
 
    }
 });
 
+// assume everything passed to this array is visible
 function calculatePosition(elementArray)
 {
     let positionArray = [];
@@ -162,15 +163,11 @@ function calculatePosition(elementArray)
     for (let i = 0; i < elementArray.length; i++)
     {
         const element = elementArray[i];
-        if (element.object3D.visible)
-        {
-            console.log(element.object3D)
-            console.log("element " + i + " is visible")
-            const pos = new THREE.Vector3();
-            element.object3D.getWorldPosition(pos);
-            positionArray.push(pos)
-        }
+        const pos = new THREE.Vector3();
+        element.object3D.getWorldPosition(pos);
+        positionArray.push(pos)
     }
+    //console.log( "position vectors: " + positionArray.length)
     return averageWithoutOutliers(positionArray, 0.5)
 }
 
@@ -201,11 +198,35 @@ function calculatePosition(elementArray)
 
 
 
+// since ID 0-3 are the front face of the cube, and we want the planes to lie flat, 
+//   they need to be rotated -90 degrees around x in general.
+//   y-axis is perpendicular to face / center of cube
+// adjust ID 4-7 accordingly
 const markerData = [
-    {id:0, pos: new THREE.Vector3(-0.75, +0.75, -1.50), rot:{x:0, y:0, z:0}},
-    {id:1, pos: new THREE.Vector3(+0.75, +0.75, -1.50), rot:{x:0, y:0, z:0}},
-    {id:2, pos: new THREE.Vector3(-0.75, -0.75, -1.50), rot:{x:0, y:0, z:0}},
-    {id:3, pos: new THREE.Vector3(+0.75, -0.75, -1.50), rot:{x:0, y:0, z:0}},
+    {id: 0, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:0}},
+    {id: 1, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:0}},
+    {id: 2, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:0}},
+    {id: 3, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:0}},
+    {id: 4, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:90}}, // rememb: align to original axes
+    {id: 5, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:90}},
+    {id: 6, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:90}},
+    {id: 7, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:90}},
+    {id: 8, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:180}},
+    {id: 9, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:180}},
+    {id:10, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:180}},
+    {id:11, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:180}},
+    {id:12, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:270}},
+    {id:13, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:270}},
+    {id:14, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:270}},
+    {id:15, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:270}},
+    {id:16, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:90, y:0, z:0}},
+    {id:17, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:90, y:0, z:0}},
+    {id:18, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:90, y:0, z:0}},
+    {id:19, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:90, y:0, z:0}},
+    {id:20, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:-90, y:0, z:0}},
+    {id:21, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:-90, y:0, z:0}},
+    {id:22, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:-90, y:0, z:0}},
+    {id:23, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:-90, y:0, z:0}},
 ]
 
 const scene = document.querySelector("a-scene");
@@ -216,6 +237,8 @@ function createBarcodeMarker(data)
     marker.setAttribute('type', 'barcode');
     marker.setAttribute('value', String(data.id));
     marker.setAttribute('id', `marker${data.id}`);
+    marker.setAttribute('smooth', "false");
+    
     marker.data = data;
 
     const plane = document.createElement('a-plane');
@@ -239,27 +262,30 @@ function createBarcodeMarker(data)
     scene.appendChild(sphere)
 
     // use to track center of associated cube volume
-    const axes = document.createElement('a-sphere');   // TODO: fix (claims elements are visible, but they are not)
-    axes.setAttribute("radius", "0.2")
+    const axes = document.createElement('a-entity');   
+    // TODO: fix (claims elements are visible, but they are not) -- maybe only parent vis switches. bubbles down to children in scene graph
     axes.setAttribute('axes-helper', '');
-    axes.setAttribute('position', `${-data.pos.x} ${data.pos.z} ${data.pos.y}`);
+    axes.setAttribute('o-marker', '');
+    axes.setAttribute('position', `${-data.pos.x} ${data.pos.y} ${data.pos.z}`);
+    axes.setAttribute('rotation', `${data.rot.x} ${data.rot.y} ${data.rot.z}`);
+    
     marker.appendChild(axes);
 
     // empty coordinate for tracking axis directions
     const xMarker = document.createElement('a-entity');
     xMarker.setAttribute('x-marker', '');
-    xMarker.setAttribute('position', `${-data.pos.x + 1} ${data.pos.z} ${data.pos.y}`);
-    marker.appendChild(xMarker)
+    xMarker.setAttribute('position', `1 0 0`);
+    axes.appendChild(xMarker)
 
     const yMarker = document.createElement('a-entity');
     yMarker.setAttribute('y-marker', '');
-    yMarker.setAttribute('position', `${-data.pos.x} ${data.pos.z} ${data.pos.y + 1}`);
-    marker.appendChild(yMarker)
+    yMarker.setAttribute('position', `0 1 0`);
+    axes.appendChild(yMarker)
 
     const zMarker = document.createElement('a-entity');
     zMarker.setAttribute('z-marker', '');
-    zMarker.setAttribute('position', `${-data.pos.x + 1} ${data.pos.z + 1} ${data.pos.y}`);
-    marker.appendChild(zMarker)
+    zMarker.setAttribute('position', `0 0 1`);
+    axes.appendChild(zMarker)
 
     
     return marker;
@@ -269,6 +295,25 @@ function createBarcodeMarker(data)
 for (let i = 0; i < markerData.length; i++)
     scene.appendChild( createBarcodeMarker( markerData[i] ) );
 
+
+function reset() 
+{
+  const sceneEl = document.querySelector('a-scene');
+  if (!sceneEl || !sceneEl.systems['arjs']) {
+    console.warn('AR.js system not found.');
+    return;
+  }
+
+  console.log(sceneEl.systems)
+  const arToolkitContext = sceneEl.systems['arjs'].arToolkitContext;
+  if (!arToolkitContext || !arToolkitContext.arController) {
+    console.warn('AR.js controller not initialized yet.');
+    return;
+  }
+
+  console.log('Resetting AR.js tracking state...');
+  arToolkitContext.arController.reset(false);
+}
 </script>
 
 </body>
