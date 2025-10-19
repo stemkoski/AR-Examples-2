@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>AR demo</title>
+
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <!--
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    -->
+
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+    </style>
+
+</head>
+<body>
+
+<script>
+  AFRAME.registerComponent('axes-helper', {
+      schema: { size: {type: 'number', default: 1} },
+      init: function () {
+        const helper = new THREE.AxesHelper(this.data.size);
+        this.el.object3D.add(helper);
+      }
+    });
+
+    /*
+function getWorldPose(obj3D)
+{
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    obj3D.updateMatrixWorld(true);
+    obj3D.getWorldPosition(pos);
+    obj3D.getWorldQuaternion(quat);
+
+    const xAxis = new THREE.Vector3(1, 0, 0).applyQuaternion(quat).normalize(); // world direction of marker's +X
+    const yAxis = new THREE.Vector3(0, 1, 0).applyQuaternion(quat).normalize(); // world direction of marker's +Y
+    const zAxis = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize(); // world direction of marker's +Z
+
+    return { pos, quat, xAxis, yAxis, zAxis };
+}
+*/
+
+function averageWithoutOutliers(vecs, epsilon) 
+{
+  const THREE = AFRAME?.THREE || window.THREE;
+  if (!vecs || vecs.length === 0) throw new Error("No vectors");
+
+  console.log("calculating average of " + vecs.length)
+  if (vecs.length == 1) 
+  {
+      console.log("only one")
+      return vecs[0].clone();
+  }
+
+  // Compute provisional mean
+  const mean = new THREE.Vector3();
+  vecs.forEach(v => mean.add(v));
+  mean.multiplyScalar(1 / vecs.length);
+
+  // Keep only inliers within epsilon distance of the mean
+  const inliers = vecs.filter(v => v.distanceTo(mean) <= epsilon);
+
+  // status report
+  if (vecs.length > inliers.length)
+    console.log("outliers rejected!")
+
+  // If all were rejected, just return the initial mean
+  if (inliers.length === 0) return mean;
+
+  // Recompute mean from inliers
+  const result = new THREE.Vector3();
+  inliers.forEach(v => result.add(v));
+  result.multiplyScalar(1 / inliers.length);
+
+  return result;
+}
+
+AFRAME.registerComponent('marker-handler', 
+{
+   init: function()
+   {
+        this.markerArray = document.querySelectorAll("a-marker");
+        this.sphereArray = document.querySelectorAll("a-sphere");
+        this.helperArray = document.querySelectorAll("[axes-helper]")
+        this.xMarkerArray = document.querySelectorAll("[x-marker]")
+        
+        this.visibleIdArray = [];
+   },
+
+   tick: function() 
+   {
+        this.visibleIdArray = [];
+
+        for (let i = 0; i < this.markerArray.length; i++)
+        {
+            const marker = this.markerArray[i];
+            const plane  = marker.querySelector('a-plane');
+            if (marker.object3D.visible)
+            {
+                this.visibleIdArray.push(i);
+                plane.setAttribute('color', '#00ff00');
+
+                this.sphereArray[i].object3D.visible = true;
+                const pos = new THREE.Vector3();
+                marker.object3D.getWorldPosition(pos);
+                this.sphereArray[i].object3D.position.set(pos.x, pos.y, pos.z);
+            }
+            else
+            {
+                plane.setAttribute('color', '#ff0000');
+            }
+        }
+        //console.log( this.markerArray.length )
+        //console.log( this.visibleIdArray )
+
+        if (this.visibleIdArray.length == 0)
+            return;
+
+        console.log("markers found " + this.visibleIdArray.length)
+
+
+
+        const originSphere = document.querySelector("#origin")
+        center = calculatePosition(this.helperArray)
+        originSphere.object3D.position.set( center.x, center.y, center.z )
+
+        /*
+        positionArray = [];
+        for (let i = 0; i < this.xMarkerArray.length; i++)
+        {
+            const xMarker = this.xMarkerArray[i];
+            if (xMarker.object3D.visible)
+            {
+                const pos = new THREE.Vector3();
+                xMarker.object3D.getWorldPosition(pos);
+                positionArray.push(pos)
+            }
+        }
+        position = averageWithoutOutliers(positionArray, epsilon)
+        */
+        const xAxisSphere = document.querySelector("#xAxis")
+        position = calculatePosition(this.xMarkerArray)
+        xAxisSphere.object3D.position.set( position.x, position.y, position.z )
+
+   }
+});
+
+function calculatePosition(elementArray)
+{
+    let positionArray = [];
+    // get positions for all visible markers
+    for (let i = 0; i < elementArray.length; i++)
+    {
+        const element = elementArray[i];
+        if (element.object3D.visible)
+        {
+            console.log(element.object3D)
+            console.log("element " + i + " is visible")
+            const pos = new THREE.Vector3();
+            element.object3D.getWorldPosition(pos);
+            positionArray.push(pos)
+        }
+    }
+    return averageWithoutOutliers(positionArray, 0.5)
+}
+
+</script>
+
+<a-scene embedded
+    shadow="type: pcfsoft"
+    vr-mode-ui="enabled: false"
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3; "
+    renderer="logarithmicDepthBuffer: true;">
+
+    <a-entity camera>
+        <a-entity light="type: ambient; color: #888"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 1.8" position="-0.5 1 1"></a-entity>
+    </a-entity> 
+
+    
+    <a-entity marker-handler></a-entity>
+    <a-sphere id="origin" radius="0.1" color="gray"></a-sphere>
+    <a-sphere id="xAxis"  radius="0.1" color="red"></a-sphere>
+    <a-sphere id="yAxis"  radius="0.1" color="green"></a-sphere>
+    <a-sphere id="zAxis"  radius="0.1" color="blue"></a-sphere>
+
+</a-scene>
+
+
+<script>
+
+
+
+const markerData = [
+    {id:0, pos: new THREE.Vector3(-0.75, +0.75, -1.50), rot:{x:0, y:0, z:0}},
+    {id:1, pos: new THREE.Vector3(+0.75, +0.75, -1.50), rot:{x:0, y:0, z:0}},
+    {id:2, pos: new THREE.Vector3(-0.75, -0.75, -1.50), rot:{x:0, y:0, z:0}},
+    {id:3, pos: new THREE.Vector3(+0.75, -0.75, -1.50), rot:{x:0, y:0, z:0}},
+]
+
+const scene = document.querySelector("a-scene");
+
+function createBarcodeMarker(data) 
+{
+    const marker = document.createElement('a-marker');
+    marker.setAttribute('type', 'barcode');
+    marker.setAttribute('value', String(data.id));
+    marker.setAttribute('id', `marker${data.id}`);
+    marker.data = data;
+
+    const plane = document.createElement('a-plane');
+    plane.setAttribute('color', '#0000ff');
+    plane.setAttribute('opacity', 0.4);
+    plane.setAttribute('rotation', '-90 0 0');
+    plane.setAttribute('position', '0 0.001 0');
+    plane.setAttribute('material', 'side: double;');
+    marker.appendChild(plane);
+
+    // numeric label (marker ID), centered on the square
+    const label = document.createElement('a-entity');
+    label.setAttribute('text', `value: _${data.id}_; align:center; side:double; color: navy; width: 8.0;`);
+    label.setAttribute('position', '0 0 0.01');
+    //label.setAttribute('material', 'side: double;');
+    plane.appendChild(label);
+
+    const sphere = document.createElement('a-sphere');
+    sphere.setAttribute('radius', '0.1');
+    sphere.setAttribute('id', `sphere${data.id}`);
+    scene.appendChild(sphere)
+
+    // use to track center of associated cube volume
+    const axes = document.createElement('a-sphere');   // TODO: fix (claims elements are visible, but they are not)
+    axes.setAttribute("radius", "0.2")
+    axes.setAttribute('axes-helper', '');
+    axes.setAttribute('position', `${-data.pos.x} ${data.pos.z} ${data.pos.y}`);
+    marker.appendChild(axes);
+
+    // empty coordinate for tracking axis directions
+    const xMarker = document.createElement('a-entity');
+    xMarker.setAttribute('x-marker', '');
+    xMarker.setAttribute('position', `${-data.pos.x + 1} ${data.pos.z} ${data.pos.y}`);
+    marker.appendChild(xMarker)
+
+    const yMarker = document.createElement('a-entity');
+    yMarker.setAttribute('y-marker', '');
+    yMarker.setAttribute('position', `${-data.pos.x} ${data.pos.z} ${data.pos.y + 1}`);
+    marker.appendChild(yMarker)
+
+    const zMarker = document.createElement('a-entity');
+    zMarker.setAttribute('z-marker', '');
+    zMarker.setAttribute('position', `${-data.pos.x + 1} ${data.pos.z + 1} ${data.pos.y}`);
+    marker.appendChild(zMarker)
+
+    
+    return marker;
+}
+
+
+for (let i = 0; i < markerData.length; i++)
+    scene.appendChild( createBarcodeMarker( markerData[i] ) );
+
+</script>
+
+</body>
+</html>
+
+
+
