@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>A-Frame demo</title>
+    
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="js/resizer.js"></script>
+    
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+    </style>
+
+</head>
+<body>
+
+<script>
+AFRAME.registerComponent('modify-01', 
+{
+    init: function () 
+    {
+        // Wait for model to load.
+        this.el.addEventListener('model-loaded', () => 
+        {
+            // Grab the mesh / scene.
+            const obj = this.el.getObject3D('mesh');
+            // Go over the submeshes and modify materials we want.
+            obj.traverse(node => 
+            {
+                console.log(node.name)
+                if (node.name == "glass-group") 
+                {
+                    if (node.material) {
+                        node.material.transparent = true;
+                        node.material.opacity = 0.5;
+                        node.material.emissive.set("#FFFF00")
+                        node.material.emissiveIntensity = 1.0;
+                    }
+                    console.log(node.material)
+                }
+                if (node.name == "metal-object_1") 
+                {
+                    node.material.color.set("#444444")
+                }
+                if (node.name == "base-group") 
+                {
+                    node.material.color.set("#888888")
+                }
+                
+            });
+        });
+    }
+});
+</script>
+
+<a-scene>
+
+    <a-assets>
+        <img id="crate" src="images/crate.jpg" />
+        <a-asset-item id="bulb" src="models/bulb-simple.glb"></a-asset-item>
+    </a-assets>
+
+    <a-sky color="cyan"></a-sky>
+    <a-plane 
+        color="gray" 
+        rotation="-90 0 0" 
+        width="40" 
+        height="40"
+        shadow></a-plane>
+    <a-box 
+        position="-1 1.1 -5"
+        color="red" 
+        scale="2 2 2 " 
+        material="src:#crate; side:double; opacity:0.5"
+        shadow>
+    </a-box>
+
+    <a-entity 
+        gltf-model="#bulb"
+        resizer="position:1 1 -5; size: 2 2 2;"
+        material="transparent:true;"
+        modify-01>
+	</a-entity>
+</a-scene>
+
+</body>
+</html>
+
+
+
