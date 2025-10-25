@@ -202,31 +202,17 @@ function calculatePosition(elementArray)
 //   they need to be rotated -90 degrees around x in general.
 //   y-axis is perpendicular to face / center of cube
 // adjust ID 4-7 accordingly
+let y = 0.0
 const markerData = [
-    {id: 0, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:0}},
-    {id: 1, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:0}},
-    {id: 2, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:0}},
-    {id: 3, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:0}},
-    {id: 4, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:90}}, // rememb: align to original axes
-    {id: 5, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:90}},
-    {id: 6, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:90}},
-    {id: 7, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:90}},
-    {id: 8, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:180}},
-    {id: 9, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:180}},
-    {id:10, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:180}},
-    {id:11, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:180}},
-    {id:12, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:0, y:0, z:270}},
-    {id:13, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:0, y:0, z:270}},
-    {id:14, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:0, y:0, z:270}},
-    {id:15, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:0, y:0, z:270}},
-    {id:16, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:90, y:0, z:0}},
-    {id:17, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:90, y:0, z:0}},
-    {id:18, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:90, y:0, z:0}},
-    {id:19, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:90, y:0, z:0}},
-    {id:20, pos: new THREE.Vector3(-0.75, -1.50, +0.75), rot:{x:-90, y:0, z:0}},
-    {id:21, pos: new THREE.Vector3(+0.75, -1.50, +0.75), rot:{x:-90, y:0, z:0}},
-    {id:22, pos: new THREE.Vector3(-0.75, -1.50, -0.75), rot:{x:-90, y:0, z:0}},
-    {id:23, pos: new THREE.Vector3(+0.75, -1.50, -0.75), rot:{x:-90, y:0, z:0}},
+    {id: 0, pos: new THREE.Vector3(-1.50, y, +1.50), rot:{x:0, y:0, z:0}},
+    {id: 1, pos: new THREE.Vector3(+0.00, y, +1.50), rot:{x:0, y:0, z:0}},
+    {id: 2, pos: new THREE.Vector3(+1.50, y, +1.50), rot:{x:0, y:0, z:0}},
+    {id: 3, pos: new THREE.Vector3(-1.50, y, +0.00), rot:{x:0, y:0, z:0}},
+    {id: 4, pos: new THREE.Vector3(+0.00, y, +0.00), rot:{x:0, y:0, z:0}}, // rememb: align to original axes
+    {id: 5, pos: new THREE.Vector3(+1.50, y, +0.00), rot:{x:0, y:0, z:0}},
+    {id: 6, pos: new THREE.Vector3(-1.50, y, -1.50), rot:{x:0, y:0, z:0}},
+    {id: 7, pos: new THREE.Vector3(+0.00, y, -1.50), rot:{x:0, y:0, z:0}},
+    {id: 8, pos: new THREE.Vector3(+1.50, y, -1.50), rot:{x:0, y:0, z:0}},
 ]
 
 const scene = document.querySelector("a-scene");
