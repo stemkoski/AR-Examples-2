@@ -174,7 +174,6 @@ function calculatePosition(elementArray)
 </script>
 
 <a-scene embedded
-    shadow="type: pcfsoft"
     vr-mode-ui="enabled: false"
     arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3; "
     renderer="logarithmicDepthBuffer: true;">
@@ -197,11 +196,9 @@ function calculatePosition(elementArray)
 <script>
 
 
-
 // since ID 0-3 are the front face of the cube, and we want the planes to lie flat, 
 //   they need to be rotated -90 degrees around x in general.
 //   y-axis is perpendicular to face / center of cube
-// adjust ID 4-7 accordingly
 let y = 0.0
 const markerData = [
     {id: 0, pos: new THREE.Vector3(-1.50, y, +1.50), rot:{x:0, y:0, z:0}},
@@ -273,7 +270,16 @@ function createBarcodeMarker(data)
     zMarker.setAttribute('position', `0 0 1`);
     axes.appendChild(zMarker)
 
-    
+    marker.addEventListener('markerFound',  () => {
+        console.log('Marker found:', data.id);
+        // your code here (show UI, start audio, etc.)
+    });
+
+    marker.addEventListener('markerLost', () => {
+        console.log('Marker lost:', data.id);
+        // your code here (hide UI, stop audio, etc.)
+    });
+
     return marker;
 }
 
@@ -282,24 +288,6 @@ for (let i = 0; i < markerData.length; i++)
     scene.appendChild( createBarcodeMarker( markerData[i] ) );
 
 
-function reset() 
-{
-  const sceneEl = document.querySelector('a-scene');
-  if (!sceneEl || !sceneEl.systems['arjs']) {
-    console.warn('AR.js system not found.');
-    return;
-  }
-
-  console.log(sceneEl.systems)
-  const arToolkitContext = sceneEl.systems['arjs'].arToolkitContext;
-  if (!arToolkitContext || !arToolkitContext.arController) {
-    console.warn('AR.js controller not initialized yet.');
-    return;
-  }
-
-  console.log('Resetting AR.js tracking state...');
-  arToolkitContext.arController.reset(false);
-}
 </script>
 
 </body>
