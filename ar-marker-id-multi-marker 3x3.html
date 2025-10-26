@@ -195,6 +195,56 @@ function calculatePosition(elementArray)
 
 <script>
 
+class MarkerSystem 
+{
+  constructor(count) 
+  {
+    this.count = count;
+    // history: an array 
+    this.history = new Array(this.count);
+    // at the beginning, nothing is visible
+    for (let id = 0; id < this.count; id++)
+        this.history[id] = [ {"visible":false, "time":0} ];
+    // record log times
+    this.startTime = Date.now();
+  }
+
+  log(id, visible)
+  {
+    // console.log("id", id, "visible", visible)
+
+    // add entry to front of corresponding history array
+    this.history[id].unshift( {"visible":visible, "time":Date.now() - this.startTime} );
+    // cap history length at 4; if longer than 4, remove last element
+    if (this.history[id].length > 4)
+        this.history[id].pop();
+
+    //console.log( this.history[id] )
+
+  }
+
+  visible(id)
+  {
+    return this.history[id][0].visible;
+  }
+
+  totalVisible()
+  {
+    let total = 0;
+    for (let id = 0; id < this.count; id++)
+        if ( this.visible(id) )
+            total++;
+    return total;
+  }
+
+  addEventListener(type, idData, func)
+  {
+    
+  }
+}
+
+const markerSystem = new MarkerSystem(9);
+const startTime = Date.now();
 
 // since ID 0-3 are the front face of the cube, and we want the planes to lie flat, 
 //   they need to be rotated -90 degrees around x in general.
@@ -271,13 +321,11 @@ function createBarcodeMarker(data)
     axes.appendChild(zMarker)
 
     marker.addEventListener('markerFound',  () => {
-        console.log('Marker found:', data.id);
-        // your code here (show UI, start audio, etc.)
+        markerSystem.log(data.id, true);
     });
 
     marker.addEventListener('markerLost', () => {
-        console.log('Marker lost:', data.id);
-        // your code here (hide UI, stop audio, etc.)
+        markerSystem.log(data.id, false);
     });
 
     return marker;
@@ -286,6 +334,15 @@ function createBarcodeMarker(data)
 
 for (let i = 0; i < markerData.length; i++)
     scene.appendChild( createBarcodeMarker( markerData[i] ) );
+
+
+setInterval( function() { 
+    console.log(markerSystem.totalVisible() )},
+    1000
+);
+
+
+
 
 
 </script>
