@@ -195,6 +195,122 @@ function calculatePosition(elementArray)
 
 <script>
 
+// represents open interval (min, max) with min < max
+class Interval
+{
+    // min < max
+    constructor(min=0, max=1)
+    {        
+        this.setValues(min, max);
+    }
+
+    setValues(min, max)
+    {
+        if (min >= max)
+            throw new Error( `min ${min} must be less than max ${max}` );
+
+        this.min = min;
+        this.max = max;
+    }
+
+    toString() 
+    {
+        return `(${this.min}, ${this.max})`;
+    }
+
+    copy(other)
+    {
+        this.setValues(other.min, other.max);
+    }
+
+    clone()
+    {
+        return new Interval(this.min, this.max);
+    }
+
+    length()
+    {
+        return this.max - this.min
+    }
+
+    equals(other)
+    {
+        return (this.min == other.min) && (this.max == other.max);
+    }
+
+    containsValue(value)
+    {
+        return (this.min < value && value < this.max);
+    }
+
+    containsInterval(other)
+    {
+        return (this.min <= other.min && other.max <= this.max);
+    }
+
+    disjoint(other)
+    {
+        return (this.max <= other.min) || (other.max <= this.min);
+    }
+
+    overlaps(other)
+    {
+        return !this.disjoint(other);
+    }
+
+    static intersect(A, B)
+    {
+        if (A.disjoint(B))
+            return null;
+        else if (A.containsInterval(B))
+            return B.clone();
+        else if (B.containsInterval(A))
+            return A.clone();
+        else if (A.containsValue(B.min))
+            return new Interval(B.min, A.max);
+        else // if (A.containsValue(B.max))
+            return new Interval(A.min, B.max);
+    }
+
+    // A - B
+    static difference(A, B)
+    {
+        if (A.disjoint(B))
+            return A.clone();
+        else if (A.equals(B))
+            return null;
+        else if (A.containsInterval(B)) 
+        {
+            if (A.min == B.min)
+                return new Interval(B.max, A.max);
+            else if (B.max == A.max)
+                return new Interval(A.min, B.min);
+            else
+                return [ new Interval(A.min, B.min), new Interval(B.max, A.max) ];
+        }
+        else if (B.containsInterval(A))
+            return null;
+        else if (A.containsValue(B.min))
+            return new Interval(A.min, B.min);
+        else // if (A.containsValue(B.max))
+            return new Interval(B.max, A.max);
+    }
+
+    static union(A, B)
+    {
+        if (A.disjoint(B))
+            return [A.clone(), B.clone()];
+        else if (A.containsInterval(B))
+            return A.clone();
+        else if (B.containsInterval(A))
+            return B.clone();
+        else if (A.containsValue(B.min))
+            return new Interval(A.min, B.max);
+        else // if (A.containsValue(B.max))
+            return new Interval(B.min, A.max);
+    }
+}
+
 class MarkerSystem 
 {
   constructor(count) 
