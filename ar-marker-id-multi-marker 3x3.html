@@ -211,6 +211,8 @@ class Interval
 
         this.min = min;
         this.max = max;
+
+        return this;
     }
 
     toString() 
@@ -221,6 +223,7 @@ class Interval
     copy(other)
     {
         this.setValues(other.min, other.max);
+        return this;
     }
 
     clone()
