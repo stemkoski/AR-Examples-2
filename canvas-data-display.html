@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>A-Frame Bitstream + Time Marker (2-Pixel Lines)</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <style>
+    #bitCanvas {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      width: 600px;
+      height: 100px;
+      border: 2px solid #888;
+      background: transparent;
+      image-rendering: pixelated;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <a-scene bitstream-visualizer>
+    <a-entity position="0 1.25 -3">
+      <a-box color="#4CC3D9" depth="1" height="1" width="1"></a-box>
+    </a-entity>
+    <a-entity light="type: directional; intensity: 0.8" position="1 2 1"></a-entity>
+    <a-entity light="type: ambient; intensity: 0.3"></a-entity>
+    <a-sky color="#ECECEC"></a-sky>
+    <a-entity position="0 1.6 0"><a-camera></a-camera></a-entity>
+  </a-scene>
+
+  <canvas id="bitCanvas" width="600" height="100"></canvas>
+
+  <script>
+    AFRAME.registerComponent('bitstream-visualizer', {
+      init: function () {
+        // --- Config ---
+        const width = 600;
+        const height = 100;
+        const bitRow = 50;   // top of red/green line
+        const markRow = 60;  // top of white/black line
+        const lineHeight = 2;
+
+        // --- State ---
+        this.width = width;
+        this.height = height;
+        this.tickCount = 0;
+        this.arr = new Array(width).fill(0);
+        this.markerArr = new Array(width).fill(0);
+
+        // --- Canvas ---
+        this.canvas = document.getElementById('bitCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.ctx.clearRect(0, 0, width, height);
+
+        // --- Cache row positions & reusable ImageData ---
+        this.bitRowTop = bitRow;
+        this.markRowTop = markRow;
+        this.lineHeight = lineHeight;
+        this.rowImage = this.ctx.createImageData(width, lineHeight);
+        this.markerImage = this.ctx.createImageData(width, lineHeight);
+      },
+
+      tick: function () {
+        const w = this.width;
+        this.tickCount++;
+
+        // --- Update arrays ---
+        this.arr.shift();
+        this.arr.push(Math.random() < 0.5 ? 0 : 1);
+
+        this.markerArr.shift();
+        this.markerArr.push(this.tickCount % 60 === 0 ? 1 : 0);
+
+        // --- Draw main bit row (red/green, 2 px high) ---
+        const rowData = this.rowImage.data;
+        for (let y = 0; y < this.lineHeight; y++) {
+          for (let x = 0; x < w; x++) {
+            const bit = this.arr[x];
+            const i = (y * w + x) * 4;
+            if (bit === 0) {
+              rowData[i] = 255; rowData[i + 1] = 0; rowData[i + 2] = 0; rowData[i + 3] = 255;
+            } else {
+              rowData[i] = 0; rowData[i + 1] = 255; rowData[i + 2] = 0; rowData[i + 3] = 255;
+            }
+          }
+        }
+        this.ctx.putImageData(this.rowImage, 0, this.bitRowTop);
+
+        // --- Draw time marker row (white/black, 2 px high) ---
+        const markerData = this.markerImage.data;
+        for (let y = 0; y < this.lineHeight; y++) {
+          for (let x = 0; x < w; x++) {
+            const bit = this.markerArr[x];
+            const i = (y * w + x) * 4;
+            if (bit === 0) {
+              markerData[i] = 255; markerData[i + 1] = 255; markerData[i + 2] = 255; markerData[i + 3] = 255;
+            } else {
+              markerData[i] = 0; markerData[i + 1] = 0; markerData[i + 2] = 0; markerData[i + 3] = 255;
+            }
+          }
+        }
+        this.ctx.putImageData(this.markerImage, 0, this.markRowTop);
+      }
+    });
+  </script>
+</body>
+</html>
