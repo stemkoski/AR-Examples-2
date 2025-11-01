@@ -24,54 +24,6 @@
 </head>
 <body>
 
-<script>
-AFRAME.registerComponent('marker-handler', 
-{
-   init: function()
-   {
-        this.model = document.querySelector("#model");
-        this.markerArray = document.querySelectorAll("a-marker");
-        this.visibleMarkerIndex = -1;
-        this.currentMarkerIndex = -1;
-   },
-
-   tick: function() 
-   {
-        this.visibleMarkerIndex = -1;
-        for (let i = 0; i < this.markerArray.length; i++)
-            if (this.markerArray[i].object3D.visible)
-                this.visibleMarkerIndex = i;
-        
-        // console.log( this.visibleMarkerIndex );
-
-        // the rest of this function can be skipped if there has been no change
-        if ( this.visibleMarkerIndex == this.currentMarkerIndex )
-        {
-            console.log( "visible: no change" );
-            return;
-        }
-        else
-        {
-            console.log( "visible: " + this.visibleMarkerIndex );
-            this.currentMarkerIndex = this.visibleMarkerIndex;
-        }
-
-        if ( this.visibleMarkerIndex == -1 )
-            this.model.object3D.visible = false;
-        else
-        {
-            this.model.object3D.visible = true;
-
-            if (this.model.object3D.parent)
-                this.model.object3D.parent.remove( this.model.object3D );
-
-            this.markerArray[this.visibleMarkerIndex].children[0].add( this.model );
-        }
-
-   }
-});
-
-</script>
 
 <!-- 
     cameraParametersUrl: uses local data, so internet connection not required
