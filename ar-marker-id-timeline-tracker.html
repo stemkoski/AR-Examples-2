@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- blank favicon -->
+    <link href="data:image/x-icon;base64,iVBORw0KGgo=" rel="icon" type="image/x-icon" />
+    <title>TIMELINE TRACKER</title>
+
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
+    <style>
+        body 
+        { 
+            margin: 0; 
+            overflow: hidden; 
+        }
+
+        #dataCanvas 
+        {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            width: 600px;
+            height: 100px;
+            border: 2px solid #888;
+            background: transparent;
+            image-rendering: pixelated;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+
+</head>
+<body>
+
+<a-scene embedded
+    shadow="type: pcfsoft"
+    vr-mode-ui="enabled: false"
+    arjs="detectionMode: mono_and_matrix; matrixCodeType: 3x3; "
+    renderer="logarithmicDepthBuffer: true;">
+
+    <!--
+        boxes must be raised for bottom side to "sit" on AR marker surface
+        <a-box position="0 0.5 0" color="red" material="transparent:true; opacity:0.50;"></a-box>
+    -->
+
+    <!--
+    <a-marker type="barcode" value="0" smooth="true">
+        <a-plane color="red" rotation="-90 0 0" material="transparent:true; opacity:0.50;">
+            <a-entity text="value: Hello\nWorld; align:center; color:navy; width:8.0;" position="0 0 0.01">
+            </a-entity>
+        </a-plane>
+    </a-marker>
+    -->
+
+    <a-entity camera>
+        <a-entity light="type: ambient; color: #888"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 1.8" position="-0.5 1 1"></a-entity>
+    </a-entity>  
+    
+    <a-entity marker-visibility-visualizer></a-entity>
+
+</a-scene>
+
+<canvas id="dataCanvas" width="600" height="100"></canvas>
+
+<script>
+
+class MarkerSystem 
+{
+  constructor(count) 
+  {
+    this.count = count;
+    // history: an array that tracks visibility changes
+    this.history = new Array(this.count);
+    // at the beginning, nothing is visible
+    for (let id = 0; id < this.count; id++)
+        this.history[id] = [ {"visible":false, "time":0} ];
+    // record log times
+    this.startTime = Date.now();
+  }
+
+  log(id, visible)
+  {
+    // add entry to front of corresponding history array
+    this.history[id].unshift( {"visible":visible, "time":Date.now() - this.startTime} );
+    // cap history length at 4; if longer than 4, remove last element
+    if (this.history[id].length > 4)
+        this.history[id].pop();
+  }
+
+  isVisible(id)
+  {
+    return this.history[id][0].visible;
+  }
+
+  totalVisible()
+  {
+    let total = 0;
+    for (let id = 0; id < this.count; id++)
+        if ( this.isVisible(id) )
+            total++;
+    return total;
+  }
+
+  addEventListener(type, idData, func)
+  {
+    
+  }
+}
+
+const markerSystem = new MarkerSystem(9);
+
+function createBarcodeMarker(id) 
+{
+    const marker = document.createElement('a-marker');
+    marker.setAttribute('type', 'barcode');
+    marker.setAttribute('value', String(id));
+
+    const plane = document.createElement('a-plane');
+    plane.setAttribute('color', '#00ff00');
+    plane.setAttribute('opacity', 0.4);
+    plane.setAttribute('rotation', '-90 0 0');
+    plane.setAttribute('position', '0 0.001 0');
+    plane.setAttribute('material', 'side: double;');
+    marker.appendChild(plane);
+
+    // numeric label (marker ID), centered on the square
+    const label = document.createElement('a-entity');
+    label.setAttribute('text', `value: _${id}_; align:center; side:double; color: navy; width: 8.0;`);
+    label.setAttribute('position', '0 0 0.01');
+    //label.setAttribute('material', 'side: double;');
+    plane.appendChild(label);
+
+    marker.addEventListener('markerFound',  () => {
+        markerSystem.log(id, true);
+    });
+
+    marker.addEventListener('markerLost', () => {
+        markerSystem.log(id, false);
+    });
+
+    return marker;
+}
+
+
+const scene = document.querySelector('a-scene');
+
+for (let i = 0; i < 64; i++)
+    scene.appendChild( createBarcodeMarker(i) );
+
+</script>
+
+<script>
+AFRAME.registerComponent('marker-visibility-visualizer', 
+{
+    init: function () 
+    {
+        // --- State ---
+        this.width = 600;
+        this.height = 100;
+        this.tickCount = 0;
+        this.markerCount = 9;
+        this.visibleHistoryData = [];
+        for (let i = 0; i < this.markerCount; i++)
+            this.visibleHistoryData.push( new Array(this.width).fill(0) );
+        this.timeHistoryData = new Array(this.width).fill(0);
+
+        // --- Canvas ---
+        this.canvas = document.getElementById('dataCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
+        // --- Cache row positions & reusable ImageData ---
+        this.lineHeight = 2;
+        this.visibleHistoryImage = [];
+        for (let i = 0; i < this.markerCount; i++)
+            this.visibleHistoryImage.push( this.ctx.createImageData(this.width, this.lineHeight) );
+        this.timeHistoryImage = this.ctx.createImageData(this.width, this.lineHeight);
+    },
+
+    tick: function () 
+    {
+        const w = this.width;
+        this.tickCount++;
+
+        // --- Update arrays ---
+        for (let i = 0; i < this.markerCount; i++)
+        {
+            this.visibleHistoryData[i].shift();
+            this.visibleHistoryData[i].push( markerSystem.isVisible(i) ? 1 : 0 );
+        }
+
+        this.timeHistoryData.shift();
+        this.timeHistoryData.push( this.tickCount % 60 < 4 ? 1 : 0);
+
+        // draw visible history data
+        for (let id = 0; id < this.markerCount; id++)
+        {
+            const imageData = this.visibleHistoryImage[id].data; // this.rowImage.data;
+            for (let y = 0; y < this.lineHeight; y++) 
+            {
+                for (let x = 0; x < w; x++) 
+                {
+                    const bit = this.visibleHistoryData[id][x];
+                    const i = (y * w + x) * 4;
+                    if (bit === 0) 
+                        setPixelRGBA(imageData, i, 255, 0, 0, 255);
+                    else 
+                        setPixelRGBA(imageData, i, 0, 255, 0, 255);
+                }
+            }
+            this.ctx.putImageData(this.visibleHistoryImage[id], 0, 10 * id);
+        }
+
+        // draw time history data
+        const imageData = this.timeHistoryImage.data;
+        for (let y = 0; y < this.lineHeight; y++) 
+        {
+            for (let x = 0; x < w; x++) 
+            {
+                const bit = this.timeHistoryData[x];
+                const i = (y * w + x) * 4;
+                if (bit === 0)
+                    setPixelRGBA(imageData, i, 255, 255, 0, 255);
+                else
+                    setPixelRGBA(imageData, i, 0, 0, 0, 255);
+            }
+        }
+        this.ctx.putImageData(this.timeHistoryImage, 0, this.markerCount * 10);
+    }
+});
+
+function setPixelRGBA(dataArray, i, r, g, b, a)
+{
+    dataArray[i] = r; dataArray[i + 1] = g; dataArray[i + 2] = b; dataArray[i + 3] = a;
+}
+</script>
+
+
+
+</body>
+</html>
+
+
+
