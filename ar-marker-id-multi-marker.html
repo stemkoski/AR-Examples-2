@@ -7,10 +7,6 @@
     <title>AR demo</title>
 
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <!--
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    -->
-
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
     <style>
@@ -25,30 +21,14 @@
 <body>
 
 <script>
-  AFRAME.registerComponent('axes-helper', {
-      schema: { size: {type: 'number', default: 1} },
-      init: function () {
-        const helper = new THREE.AxesHelper(this.data.size);
-        this.el.object3D.add(helper);
-      }
-    });
-
-    /*
-function getWorldPose(obj3D)
+AFRAME.registerComponent('axes-helper', 
 {
-    const pos = new THREE.Vector3();
-    const quat = new THREE.Quaternion();
-    obj3D.updateMatrixWorld(true);
-    obj3D.getWorldPosition(pos);
-    obj3D.getWorldQuaternion(quat);
-
-    const xAxis = new THREE.Vector3(1, 0, 0).applyQuaternion(quat).normalize(); // world direction of marker's +X
-    const yAxis = new THREE.Vector3(0, 1, 0).applyQuaternion(quat).normalize(); // world direction of marker's +Y
-    const zAxis = new THREE.Vector3(0, 0, -1).applyQuaternion(quat).normalize(); // world direction of marker's +Z
-
-    return { pos, quat, xAxis, yAxis, zAxis };
-}
-*/
+    schema: { size: {type: 'number', default: 1} },
+    init: function () {
+    const helper = new THREE.AxesHelper(this.data.size);
+    this.el.object3D.add(helper);
+    }
+});
 
 function averageWithoutOutliers(vecs, epsilon) 
 {
@@ -121,37 +101,20 @@ AFRAME.registerComponent('marker-handler',
                 xMarkerVisibleArray.push( this.xMarkerArray[i] );
                 yMarkerVisibleArray.push( this.yMarkerArray[i] );
                 zMarkerVisibleArray.push( this.zMarkerArray[i] );
-
-                // const pos = new THREE.Vector3();
-                // marker.object3D.getWorldPosition(pos);
-                // console.log("marker " + i + " visible")
             }
             else
             {
                 plane.setAttribute('color', '#ff0000');
-                // console.log("marker " + i + " NOT visible")
             }
         }
-        //console.log( this.markerArray.length )
-        //console.log( this.visibleIdArray )
 
         if (this.visibleIdArray.length == 0)
             return;
 
-        //console.log("markers found " + this.visibleIdArray.length)
-
-
-
-        //const originSphere = document.querySelector("#origin")
-        //position = calculatePosition(oMarkerVisibleArray)
         document.querySelector("#origin").object3D.position.copy( calculatePosition(oMarkerVisibleArray) );
-
-        //const xAxisSphere = document.querySelector("#xAxis")
-        //position = calculatePosition(xMarkerVisibleArray)
-        document.querySelector("#xAxis").object3D.position.copy( calculatePosition(xMarkerVisibleArray) )
-        document.querySelector("#yAxis").object3D.position.copy( calculatePosition(yMarkerVisibleArray) )
-        document.querySelector("#zAxis").object3D.position.copy( calculatePosition(zMarkerVisibleArray) )
-
+        document.querySelector("#xAxis" ).object3D.position.copy( calculatePosition(xMarkerVisibleArray) )
+        document.querySelector("#yAxis" ).object3D.position.copy( calculatePosition(yMarkerVisibleArray) )
+        document.querySelector("#zAxis" ).object3D.position.copy( calculatePosition(zMarkerVisibleArray) )
    }
 });
 
@@ -318,6 +281,3 @@ function reset()
 
 </body>
 </html>
-
-
-
